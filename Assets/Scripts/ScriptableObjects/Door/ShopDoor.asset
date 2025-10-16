@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e97344bf6cd96498ff9eff0ac72914, type: 3}
+  m_Name: ShopDoor
+  m_EditorClassIdentifier: 
+  _roomType: 2
+  _upDoor: {fileID: -2000655881, guid: 57a2eb56aefaa3345a52baf4975c0b07, type: 3}
+  _downDoor: {fileID: 754854093, guid: 57a2eb56aefaa3345a52baf4975c0b07, type: 3}
+  _leftDoor: {fileID: 107843478, guid: 57a2eb56aefaa3345a52baf4975c0b07, type: 3}
+  _rightDoor: {fileID: 976265430, guid: 57a2eb56aefaa3345a52baf4975c0b07, type: 3}

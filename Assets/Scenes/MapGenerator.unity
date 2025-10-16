@@ -132,6 +132,7 @@ GameObject:
   m_Component:
   - component: {fileID: 404226930}
   - component: {fileID: 404226929}
+  - component: {fileID: 404226931}
   m_Layer: 0
   m_Name: MapGenerator
   m_TagString: Untagged
@@ -156,6 +157,10 @@ MonoBehaviour:
   _shop: {fileID: -1706076669, guid: 012288165ddfba7438573138aaa40e74, type: 3}
   _boss: {fileID: -1016283655, guid: 012288165ddfba7438573138aaa40e74, type: 3}
   _secret: {fileID: -644846141, guid: 012288165ddfba7438573138aaa40e74, type: 3}
+  _largeRoom: {fileID: 1003313291, guid: b2b7aedb5f242cc4a93f12cee6886ea6, type: 3}
+  _verticalRoom: {fileID: -412454713, guid: b2b7aedb5f242cc4a93f12cee6886ea6, type: 3}
+  _horizontalRoom: {fileID: -1557037780, guid: b2b7aedb5f242cc4a93f12cee6886ea6, type: 3}
+  _LShapeRoom: {fileID: 245832874, guid: b2b7aedb5f242cc4a93f12cee6886ea6, type: 3}
 --- !u!4 &404226930
 Transform:
   m_ObjectHideFlags: 0
@@ -171,6 +176,40 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &404226931
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 404226928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 407d12ca90f47f04fa3f8a23076d0c35, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _offsetX: 21.25
+  _offsetY: 10.625
+  _doorPrefab: {fileID: 6411795544324299845, guid: 22d1f85b067e3284781be099175d5976, type: 3}
+  _roomPrefab: {fileID: 1237300155463790474, guid: 811caa1992a5b5b44bc562c3f3c25631, type: 3}
+  _doors:
+  - {fileID: 11400000, guid: 8b32db1b3da7825408fad1ae25ed7935, type: 2}
+  - {fileID: 11400000, guid: 1c5a4e0b46ddee447b56648cd6f1b258, type: 2}
+  - {fileID: 11400000, guid: 3d3c56605a10fcc4c8bd74a5b4de574a, type: 2}
+  - {fileID: 11400000, guid: d8c7af38bc7723f43813491ca48c9271, type: 2}
+  _rooms:
+  - {fileID: 11400000, guid: d421bd613166030458b53ca8446bc306, type: 2}
+  - {fileID: 11400000, guid: 48f8f4c56b2a30d42b52adc2a055fac5, type: 2}
+  - {fileID: 11400000, guid: 3f33cde2af24514468871e7aaf8bc07e, type: 2}
+  - {fileID: 11400000, guid: 01e5ad9c25439c44d8f18e8b636641f4, type: 2}
+  - {fileID: 11400000, guid: 7418b08ecf42d6e439fe7187c85f8cd9, type: 2}
+  - {fileID: 11400000, guid: afd388e19dac50a428440d0123fe68d2, type: 2}
+  - {fileID: 11400000, guid: 15ddb4d53e4f5ac49921d9fd00c0754e, type: 2}
+  - {fileID: 11400000, guid: 6bbc7d2dc13cccc49a1e4cd9116a5558, type: 2}
+  - {fileID: 11400000, guid: 3f5f9e8ba9061c349bf19d47f161a73f, type: 2}
+  - {fileID: 11400000, guid: 3d3acee419204a845b961b671a375f1a, type: 2}
+  - {fileID: 11400000, guid: 20720f9b659af0e428c8a003222b673c, type: 2}
+  - {fileID: 11400000, guid: 813280094039e8f448f5bbdac35c281d, type: 2}
 --- !u!1 &1746256921
 GameObject:
   m_ObjectHideFlags: 0

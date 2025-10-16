@@ -1,41 +1,94 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class MapGenerator : MonoBehaviour
 {
-    // ¸Ê »ı¼º¿¡ ÇÊ¿äÇÑ private º¯¼öµé
-    int[] _floorPlan;           // ¸Ê ÀüÃ¼¸¦ 1D ¹è¿­·Î ÀúÀåÇÏ´Â °ø°£
+    // ë§µ ìƒì„±ì— í•„ìš”í•œ private ë³€ìˆ˜ë“¤
+    int[] _floorPlan;           // ë§µ ì „ì²´ë¥¼ 1D ë°°ì—´ë¡œ ì €ì¥í•˜ëŠ” ê³µê°„
+    public int[] GetFloorPlan => _floorPlan;
 
-    int _floorPlanCount;        // Áö±İ±îÁö »ı¼ºµÈ ¹æ
-    int _minRooms;              // ÃÖ¼Ò ¹æ °³¼ö
-    int _maxRooms;              // ÃÖ´ë ¹æ °³¼ö
-    List<int> _endRooms;        // ÇöÀç »ı¼ºµÈ ¹æµé Áß ³¡ ¹æÀÇ ÀÎµ¦½º¸¦ ´ã´Â ¸®½ºÆ®
+    int _floorPlanCount;        // ì§€ê¸ˆê¹Œì§€ ìƒì„±ëœ ë°©
+    int _minRooms;              // ìµœì†Œ ë°© ê°œìˆ˜
+    int _maxRooms;              // ìµœëŒ€ ë°© ê°œìˆ˜
+    List<int> _endRooms;        // í˜„ì¬ ìƒì„±ëœ ë°©ë“¤ ì¤‘ ë ë°©ì˜ ì¸ë±ìŠ¤ë¥¼ ë‹´ëŠ” ë¦¬ìŠ¤íŠ¸
+    List<int> _bigRoomIndexes;  // í° ë°©ë“¤ì˜ ì¸ë±ìŠ¤ë¥¼ ë‹´ëŠ” ë¦¬ìŠ¤íŠ¸
 
-    int _bossRoomIndex;         // º¸½º ¹æ ¼¿ÀÇ ÀÎµ¦½º
-    int _secretRoomIndex;       // ºñ¹Ğ ¹æ ¼¿ÀÇ ÀÎµ¦½º
-    int _shopRoomIndex;         // »óÁ¡ ¹æ ¼¿ÀÇ ÀÎµ¦½º
-    int _itemRoomIndex;         // ¾ÆÀÌÅÛ ¹æ ¼¿ÀÇ ÀÎµ¦½º
+    int _bossRoomIndex;         // ë³´ìŠ¤ ë°© ì…€ì˜ ì¸ë±ìŠ¤
+    int _secretRoomIndex;       // ë¹„ë°€ ë°© ì…€ì˜ ì¸ë±ìŠ¤
+    int _shopRoomIndex;         // ìƒì  ë°© ì…€ì˜ ì¸ë±ìŠ¤
+    int _itemRoomIndex;         // ì•„ì´í…œ ë°© ì…€ì˜ ì¸ë±ìŠ¤
 
-    public Cell CellPrefab;     // ½ÇÁ¦ È­¸é¿¡ Âï¾îÁÙ ¹æ Prefab
-    float _cellSize;            // ¼¿ »çÀÌ °£°İ
-    Queue<int> _cellQueue;      // ´Ü°èÀû ¹æ »ı¼º ½Ã »ç¿ëÇÒ Å¥
-    List<Cell> _spawnCells;     // Scene¿¡ ½ÇÁ¦·Î InstantiateÇÑ ¹æ ¿ÀºêÁ§Æ®
+    public Cell CellPrefab;     // ì‹¤ì œ í™”ë©´ì— ì°ì–´ì¤„ ë°© Prefab
+    float _cellSize;            // ì…€ ì‚¬ì´ ê°„ê²©
+    Queue<int> _cellQueue;      // ë‹¨ê³„ì  ë°© ìƒì„± ì‹œ ì‚¬ìš©í•  í
+    List<Cell> _spawnCells;     // Sceneì— ì‹¤ì œë¡œ Instantiateí•œ ë°© ì˜¤ë¸Œì íŠ¸
 
-    [Header("---- ½ºÇÁ¶óÀÌÆ® ÂüÁ¶ ----")]
+    public List<Cell> GetSpawnCells => _spawnCells;
+
+    [Header("---- ìŠ¤í”„ë¼ì´íŠ¸ ì°¸ì¡° ----")]
     [SerializeField] Sprite _item;
     [SerializeField] Sprite _shop;
     [SerializeField] Sprite _boss;
     [SerializeField] Sprite _secret;
 
+    [Header("---- ë³€í˜• ë°©ë“¤ ----")]
+    [SerializeField] Sprite _largeRoom;
+    [SerializeField] Sprite _verticalRoom;
+    [SerializeField] Sprite _horizontalRoom;
+    [SerializeField] Sprite _LShapeRoom;
+
+    // ë‹¤ë¥¸ ìŠ¤í¬ë¦½íŠ¸ì—ì„œ MapGenerator.instanceë¡œ ì ‘ê·¼ ê°€ëŠ¥
+    public static MapGenerator instance;
+
+    /// <summary>
+    /// ë°© ëª¨ì–‘ì— ëŒ€í•œ ì½ê¸°ì „ìš© Static ë¦¬ìŠ¤íŠ¸
+    /// </summary>
+    static readonly List<int[]> _roomShapes = new()
+    {
+        // 1x2 í¬ê¸°ì˜ ê°€ë¡œ ë°© ëª¨ì–‘
+        new int[] {-1},
+        new int[] {1},
+
+        // 2x1 í¬ê¸°ì˜ ì„¸ë¡œ ë°© ëª¨ì–‘
+        new int[] {10},
+        new int[] {-10},
+
+        // Lì ëª¨ì–‘ ë°©
+        new int[] {1, 10},
+        new int[] {1, 11},
+        new int[] {10, 11},
+
+        new int[] {9, 10},
+        new int[] {-1, 9},
+        new int[] {-1, 10},
+
+        new int[] {1, -10},
+        new int[] {1, -9},
+        new int[] {-9, -10},
+
+        new int[] {-1, -10},
+        new int[] {-1, -11},
+        new int[] {-10, -11},
+
+        // 2x2 í¬ê¸°ì˜ ì‚¬ê°í˜• ë°© ëª¨ì–‘
+        new int[] {1, 10, 11},
+        new int[] {1, -9, -10},
+        new int[] {-1, 9, 10},
+        new int[] {-1, -10, -11}
+    };
+
     void Start()
     {
-        // ¹æ Å©±â ¹× ¼¿ »çÀÌÁî
+        instance = this;
+
+        // ë°© í¬ê¸° ë° ì…€ ì‚¬ì´ì¦ˆ
         _minRooms = 7;
         _maxRooms = 15;
         _cellSize = 1f;
 
-        // »õ·Î¿î ¸®½ºÆ® »ı¼º
+        // ìƒˆë¡œìš´ ë¦¬ìŠ¤íŠ¸ ìƒì„±
         _spawnCells = new();
 
         SetUpDungeon();
@@ -50,7 +103,7 @@ public class MapGenerator : MonoBehaviour
     }
 
     /// <summary>
-    /// ±âÁ¸ ¼¿ ÆÄ±« ¹× °ª ÃÊ±âÈ­
+    /// ê¸°ì¡´ ì…€ íŒŒê´´ ë° ê°’ ì´ˆê¸°í™”
     /// </summary>
     void SetUpDungeon() 
     {
@@ -65,42 +118,43 @@ public class MapGenerator : MonoBehaviour
         _floorPlanCount = default;
         _cellQueue = new Queue<int>();
         _endRooms = new List<int>();
+        _bigRoomIndexes = new List<int>();
 
-        // Áß°£ °ª 45·Î ¼³Á¤
+        // ì¤‘ê°„ ê°’ 45ë¡œ ì„¤ì •
         VisitCell(45);
 
-        // ´øÀü »ı¼º ÇÔ¼ö È£Ãâ
+        // ë˜ì „ ìƒì„± í•¨ìˆ˜ í˜¸ì¶œ
         GenerateDungeon();
     }
 
     void GenerateDungeon()
     {
-        while (_cellQueue.Count > 0)   // Å¥°¡ ºô ¶§±îÁö ¹İº¹
+        while (_cellQueue.Count > 0)   // íê°€ ë¹Œ ë•Œê¹Œì§€ ë°˜ë³µ
         {
-            // Dequeue : Å¥¿¡¼­ µ¥ÀÌÅÍ¸¦ ²¨³»´Â ¿¬»ê
+            // Dequeue : íì—ì„œ ë°ì´í„°ë¥¼ êº¼ë‚´ëŠ” ì—°ì‚°
             int index = _cellQueue.Dequeue();
 
-            // index ¡æ 1Â÷¿ø ¹è¿­ »óÀÇ À§Ä¡°ª
-            // x ¡æ °¡·ÎÁÂÇ¥ (¿­ ¹øÈ£)
+            // index â†’ 1ì°¨ì› ë°°ì—´ ìƒì˜ ìœ„ì¹˜ê°’
+            // x â†’ ê°€ë¡œì¢Œí‘œ (ì—´ ë²ˆí˜¸)
             int x = index % 10;
 
             bool created = false;
 
-            // ¿ŞÂÊ ¼¿ È®ÀÎ (x > 1ÀÌ¸é, Áï ¸Ç ¿ŞÂÊ º®ÀÌ ¾Æ´Ï¸é)
-            // |= ºñÆ® OR ´ëÀÔ ¿¬»êÀÚ
+            // ì™¼ìª½ ì…€ í™•ì¸ (x > 1ì´ë©´, ì¦‰ ë§¨ ì™¼ìª½ ë²½ì´ ì•„ë‹ˆë©´)
+            // |= ë¹„íŠ¸ OR ëŒ€ì… ì—°ì‚°ì
             // A |= B -> A = A|B
             if (x > 1) created |= VisitCell(index - 1);
 
-            // ¿À¸¥ÂÊ ¼¿ È®ÀÎ (x < 9ÀÌ¸é, Áï ¸Ç ¿À¸¥ÂÊ º®ÀÌ ¾Æ´Ï¸é)
+            // ì˜¤ë¥¸ìª½ ì…€ í™•ì¸ (x < 9ì´ë©´, ì¦‰ ë§¨ ì˜¤ë¥¸ìª½ ë²½ì´ ì•„ë‹ˆë©´)
             if (x < 9) created |= VisitCell(index + 1);
 
-            // À§ÂÊ ¼¿ È®ÀÎ (index > 20ÀÌ¸é, À§·Î ¿Ã¶ó°¡µµ ¹üÀ§ ¾ÈÀÓ)
+            // ìœ„ìª½ ì…€ í™•ì¸ (index > 20ì´ë©´, ìœ„ë¡œ ì˜¬ë¼ê°€ë„ ë²”ìœ„ ì•ˆì„)
             if (index > 20) created |= VisitCell(index - 10);
 
-            // ¾Æ·¡ÂÊ ¼¿ È®ÀÎ (index < 70ÀÌ¸é, ¾Æ·¡·Î ³»·Á°¡µµ ¹üÀ§ ¾ÈÀÓ)
+            // ì•„ë˜ìª½ ì…€ í™•ì¸ (index < 70ì´ë©´, ì•„ë˜ë¡œ ë‚´ë ¤ê°€ë„ ë²”ìœ„ ì•ˆì„)
             if (index < 70) created |= VisitCell(index + 10);
 
-            // ÃÖÁ¾ ¹æ ¸ñ·Ï¿¡ Ãß°¡
+            // ìµœì¢… ë°© ëª©ë¡ì— ì¶”ê°€
             if (created == false)
             {
                 _endRooms.Add(index);
@@ -113,67 +167,200 @@ public class MapGenerator : MonoBehaviour
             return;
         }
 
+        CleanEndRoomsList();
+
         SetUpSpecialRooms();
     }
 
+    /// <summary>
+    /// ìµœì¢… ë°© ëª©ë¡ì„ ì—…ë°ì´íŠ¸í•˜ì—¬ ì‹¤ìˆ˜ë¡œ í° ë°©ì´ í¬í•¨ë˜ì§€ ì•Šë„ë¡ í•¨
+    /// í° ë°©ì€ EndRoomì´ ë ìˆ˜ëŠ” ìˆì§€ë§Œ SpecialRoomì´ ë˜ì§€ëŠ” ì›ì¹˜ ì•Šê¸° ë•Œë¬¸
+    /// </summary>
+    void CleanEndRoomsList()
+    {
+        _endRooms.RemoveAll(item => _bigRoomIndexes.Contains(item) || GetNeighbourCount(item) > 1);
+    }
 
-    void SetUpSpecialRooms() { }
+    void SetUpSpecialRooms() 
+    {
+        // ì‚¼í–¥ ì—°ì‚°ì : _endRoomsì— ë°©ì´ í•˜ë‚˜ë¼ë„ ìˆìœ¼ë©´ ë§ˆì§€ë§‰ ë°©ì„ ë³´ìŠ¤ë°©ìœ¼ë¡œ, ì•„ë‹ˆë©´ -1ë¡œ í‘œì‹œ
+        _bossRoomIndex = _endRooms.Count > 0 ? _endRooms[_endRooms.Count - 1] : -1;
 
-    void UpdateSpecialRoomVisuals() { }
+        // ë³´ìŠ¤ ë°©ì´ ìœ íš¨í•˜ë‹¤ë©´
+        if(_bossRoomIndex != -1)
+        {
+            // _endRooms ëª©ë¡ì—ì„œ ê·¸ ë³´ìŠ¤ ë°©ì„ ì œê±°(ì¤‘ë³µ ë°°ì • ë°©ì§€)
+            _endRooms.RemoveAt(_endRooms.Count - 1);
+        }
+
+        // ë‚˜ë¨¸ì§€ íŠ¹ìˆ˜ ë°©ë“¤ì„ ë§‰ë‹¤ë¥¸ ë°©ë“¤ì—ì„œ ëœë¤ìœ¼ë¡œ ë½‘ìŒ(ì‹¤íŒ¨ ì‹œ -1)
+        _itemRoomIndex = RandomEndRoom();
+        _shopRoomIndex = RandomEndRoom();
+        _secretRoomIndex = PickSecretRoom();
+
+        // í•˜ë‚˜ë¼ë„ ì‹¤íŒ¨ê±°ë‚˜ ë³´ìŠ¤ ë°©ì´ ì—†ë‹¤ë©´ ë˜ì „ ì…‹ì—… ë‹¤ì‹œ ì§„í–‰
+        if(_itemRoomIndex == -1 ||  _shopRoomIndex == -1 || _secretRoomIndex == -1 || _bossRoomIndex == -1)
+        {
+            SetUpDungeon();
+            return;
+        }
+
+        SpawnRoom(_secretRoomIndex);
+
+        UpdateSpecialRoomVisuals();
+        RoomManager.instance.SetUpRooms(_spawnCells);
+    }
+
+    void UpdateSpecialRoomVisuals()
+    {
+        foreach(var cell in _spawnCells)
+        {
+            if(cell.index == _itemRoomIndex)
+            {
+                cell.SetSpecialRoomSprite(_item);
+                cell.SetRoomType(RoomType.Item);
+            }
+
+            if(cell.index == _shopRoomIndex)
+            {
+                cell.SetSpecialRoomSprite(_shop);
+                cell.SetRoomType(RoomType.Shop);
+            }
+
+            if(cell.index == _secretRoomIndex)
+            {
+                cell.SetSpecialRoomSprite(_secret);
+                cell.SetRoomType(RoomType.Secret);
+            }
+
+            if( cell.index == _bossRoomIndex)
+            {
+                cell.SetSpecialRoomSprite(_boss);
+                cell.SetRoomType(RoomType.Boss);
+            }
+        }
+    }
 
     int RandomEndRoom()
     {
-        return -1;
+        // _endRooms ë¦¬ìŠ¤íŠ¸ê°€ ë¹„ì–´ìˆìœ¼ë©´ ë”ì´ìƒ ì„ íƒí•  ë°©ì´ ì—†ìœ¼ë¯€ë¡œ -1 ë¦¬í„´
+        if (_endRooms.Count == 0) return -1;
+
+        // 0 ì´ìƒ _endRooms.Count ë²”ìœ„ ë‚´ì˜ ëœë¤í•œ ì •ìˆ˜ ë½‘ê¸°
+        int randomRoom = Random.Range(0, _endRooms.Count);
+
+        // _endRooms ë¦¬ìŠ¤íŠ¸ì—ì„œ í•´ë‹¹ ì¸ë±ìŠ¤ì˜ ì‹¤ì œ ë°© ë²ˆí˜¸(Id)ë¥¼ ê°€ì ¸ì˜´
+        int index = _endRooms[randomRoom];
+
+        // ë°© ì„ íƒ í›„, ì¤‘ë³µ ì„ íƒì„ ë§‰ê¸° ìœ„í•´ ë¦¬ìŠ¤íŠ¸ì—ì„œ ì œê±°
+        _endRooms.RemoveAt(randomRoom);
+
+        // ì„ íƒëœ ë°©ì˜ ì¸ë±ìŠ¤ ë¦¬í„´
+        return index;
     }
 
     int PickSecretRoom()
     {
+        // ë„ˆë¬´ ì˜¤ë˜ ëª» ì°¾ëŠ” ê²½ìš°ë¥¼ ë§‰ê¸°ìœ„í•œ ì•ˆì „ì¥ì¹˜ : ìµœëŒ€ 900ë²ˆ  ì‹œë„
+        for(int attempt = 0; attempt < 900; attempt++)
+        {
+            // xëŠ” [1~9], yëŠ” [2~9] ë²”ìœ„ì—ì„œ ë¬´ì‘ìœ„ ì„ íƒ
+            // ê²½ê³„(ë²½)ë¡œë¶€í„° 1ì¹¸ì”© ë„ì–´ë†“ê¸° ìœ„í•´
+            int x = Mathf.FloorToInt(Random.Range(0f, 1f) * 9) + 1;
+            int y = Mathf.FloorToInt(Random.Range(0f, 1f) * 8) + 2;
+
+            // 1ì°¨ì› Index 
+            int index = y * 10 + x;
+
+            // ë¹ˆ ì¹¸(=0)ë§Œ ë¹„ë°€ë°© í›„ë³´ë¡œ ì‚¬ìš©. 0ì´ ì•„ë‹ˆë©´ ì´ë¯¸ ë°©/ë²½ ë“±ì´ ì´ë¯¸ ì ìœ 
+            if (_floorPlan[index] != 0)
+            {
+                continue;
+            } 
+
+            // ë³´ìŠ¤ ë°©ê³¼ ìƒ í•˜ ì¢Œ ìš°ë¡œ ì¸ì ‘í•˜ì§€ ì•Šë„ë¡
+            if(_bossRoomIndex == index - 1 || _bossRoomIndex == index + 1 ||  _bossRoomIndex == index + 10 || _bossRoomIndex == index - 10)
+            {
+                continue;
+            }
+
+            // ì´ì›ƒ ì¸ë±ìŠ¤ê°€ ë°°ì—´ ë²”ìœ„ ë°–ì´ë©´ ì œì™¸ì‹œí‚´
+            if(index -1 < 0 || index + 1 > _floorPlan.Length || index - 10 < 0 || index + 10 > _floorPlan.Length)
+            {
+                continue;
+            }
+
+            // ì´ì›ƒ ë°© ê°œìˆ˜ êµ¬í•˜ê¸°
+            int neihbours = GetNeighbourCount(index);
+
+            // í—ˆìš© ê¸°ì¤€ì„ ì ì  ì™„í™”
+            if(neihbours >= 3 || (attempt > 300 && neihbours >= 2) || (attempt > 600 && neihbours >= 1))
+            {
+                return index;
+            }
+        }
+
+        // 900ë²ˆ ì•ˆì— ëª» ì°¾ìœ¼ë©´ ì‹¤íŒ¨
         return -1;
     }
 
     /// <summary>
-    /// ¹è¿­ ¿ä¼ÒÀÇ ÀÎµ¦½º °Ë»ö ÈÄ
-    /// ÇØ´ç ¿ä¼ÒÀÇ Á¡À¯ »óÅÂ È®ÀÎ ÈÄ 0~4 »çÀÌÀÇ °ªÀ» ¸®ÅÏ
+    /// ë°°ì—´ ìš”ì†Œì˜ ì¸ë±ìŠ¤ ê²€ìƒ‰ í›„
+    /// í•´ë‹¹ ìš”ì†Œì˜ ì ìœ  ìƒíƒœ í™•ì¸ í›„ 0~4 ì‚¬ì´ì˜ ê°’ì„ ë¦¬í„´
     /// </summary>
     /// <param name="index"></param>
     /// <returns></returns>
     private int GetNeighbourCount(int index)
     {
-        // »ó ÇÏ ÁÂ ¿ìÀÇ ¸î °³ÀÇ ¹æÀÌ ÀÖ´Â Áö È®ÀÎ
-        // ¸¸¾à _floorPlan[index - 1]¸¸ 1ÀÌ°í ³ª¸ÓÁö°¡ 0ÀÌ¸é ÀÌ¿ô ¹æ °³¼ö 1
+        // ìƒ í•˜ ì¢Œ ìš°ì˜ ëª‡ ê°œì˜ ë°©ì´ ìˆëŠ” ì§€ í™•ì¸
+        // ë§Œì•½ _floorPlan[index - 1]ë§Œ 1ì´ê³  ë‚˜ë¨¸ì§€ê°€ 0ì´ë©´ ì´ì›ƒ ë°© ê°œìˆ˜ 1
         return _floorPlan[index - 10] + _floorPlan[index - 1] + _floorPlan[index + 1] + _floorPlan[index + 10];  
     }
 
     /// <summary>
-    /// ¼¿À» ¹æ¹®ÇÏ´Â ÇÔ¼ö
-    /// ¸î °¡Áö È®ÀÎ¿¡¼­ ¼º°øÇÏ¸é ÇöÀç Cell ¼³Á¤ Àü¿¡ false ¹İÈ¯
+    /// ì…€ì„ ë°©ë¬¸í•˜ëŠ” í•¨ìˆ˜
+    /// ëª‡ ê°€ì§€ í™•ì¸ì—ì„œ ì„±ê³µí•˜ë©´ í˜„ì¬ Cell ì„¤ì • ì „ì— false ë°˜í™˜
     /// </summary>
     /// <param name="index"></param>
     /// <returns></returns>
     private bool VisitCell(int index)
     {
-        // ºñ¾î ÀÖ´Â ¼¿ÀÌ ¾Æ´ÑÁö È®ÀÎ
+        // ë¹„ì–´ ìˆëŠ” ì…€ì´ ì•„ë‹Œì§€ í™•ì¸
         if (_floorPlan[index] != 0) return false;
 
-        // ÀÌ¿ô ¼ö°¡ 1º¸´Ù Å«Áö È®ÀÎ
+        // ì´ì›ƒ ìˆ˜ê°€ 1ë³´ë‹¤ í°ì§€ í™•ì¸
         if (GetNeighbourCount(index) > 1) return false;
 
-        // Áö±İ±îÁö »ı¼ºµÈ ¹æÀÌ _maxRoomsÀÇ ¼öº¸´Ù Å«Áö È®ÀÎ
+        // ì§€ê¸ˆê¹Œì§€ ìƒì„±ëœ ë°©ì´ _maxRoomsì˜ ìˆ˜ë³´ë‹¤ í°ì§€ í™•ì¸
         if (_floorPlanCount > _maxRooms) return false;
 
-        // ¹«ÀÛÀ§¼ºÀ» µµÀÔÇÏ¿© ¸ÊÀÌ ³Ê¹« ÃÎÃÎÇÏÁö ¾Ê°Ô, »ı¼º¿¡ º¯Çü(·£´ı¼º)À» ÁÖ±â À§ÇØ ³ÖÀº ÀåÄ¡
-        // 50% È®·ü·Î ÀÌ ¼¿ »ı¼º
+        // ë¬´ì‘ìœ„ì„±ì„ ë„ì…í•˜ì—¬ ë§µì´ ë„ˆë¬´ ì´˜ì´˜í•˜ì§€ ì•Šê²Œ, ìƒì„±ì— ë³€í˜•(ëœë¤ì„±)ì„ ì£¼ê¸° ìœ„í•´ ë„£ì€ ì¥ì¹˜
+        // 50% í™•ë¥ ë¡œ ì´ ì…€ ìƒì„±
         if (Random.value < 0.5f) return false;
 
-        // ¸ğµç if Åë°ú ½Ã ¾÷µ¥ÀÌÆ® ÇÒ ¼ö ÀÖ´Â ¼¿
-        // Enqueue : Å¥¿¡ µ¥ÀÌÅÍ¸¦ ³Ö´Â ¿¬»ê
+        // 30% í™•ë¥ ë¡œ ì‹¤ì œë¡œ í° ë°©ì„ ë§Œë“¦
+        if(Random.value < 0.3f && index != 45)
+        {
+            // OrderBy : í•­ìƒ ì§€ì •ëœ ìˆœì„œëŒ€ë¡œ ë§Œë“¤ì§€ ì•Šë„ë¡
+            foreach(var shape in _roomShapes.OrderBy(_ => Random.value))
+            {
+                if (TryPlaceRoom(index, shape))
+                {
+                    // ë£¨í”„ ì·¨ì†Œ í›„ ë°°ì¹˜. í° ë°©ì´ ìš°ì„ ì ìœ¼ë¡œ ì ìš©
+                    return true;
+                }
+            }
+        }
+
+        // ëª¨ë“  if í†µê³¼ ì‹œ ì—…ë°ì´íŠ¸ í•  ìˆ˜ ìˆëŠ” ì…€
+        // Enqueue : íì— ë°ì´í„°ë¥¼ ë„£ëŠ” ì—°ì‚°
         _cellQueue.Enqueue(index);
 
-        // ÇØ´ç ¹æÀÇ index 1·Î ¹Ù²Ù°í ÇöÀç ¹æ °³¼ö + 1
+        // í•´ë‹¹ ë°©ì˜ index 1ë¡œ ë°”ê¾¸ê³  í˜„ì¬ ë°© ê°œìˆ˜ + 1
         _floorPlan[index] = 1;
         _floorPlanCount++;
 
-        // ¹æ »ı¼º
+        // ë°© ìƒì„±
         SpawnRoom(index);
 
         return true;
@@ -181,25 +368,177 @@ public class MapGenerator : MonoBehaviour
 
     private void SpawnRoom(int index)
     {
-        // index¸¦ x, y ÁÂÇ¥·Î º¯È¯
+        // indexë¥¼ x, y ì¢Œí‘œë¡œ ë³€í™˜
         int x = index % 10;
         int y = index / 10;
 
-        // UnityÀÇ y´Â À§ÂÊÀÌ ¾ç¼ö ¾Æ·¡ÂÊÀÌ À½¼ö
-        // º¸Åë 2D map ¸¸µé ½Ã 'È­¸é ¸Ç À§ºÎÅÍ ¼øÂ÷ÀûÀ¸·Î ³»·Á¿Â´Ù' ¶ó°í »ı°¢ÇÏ±â¿¡ -y -> y = 0ÀÌ Unity ÁÂÇ¥°è¿¡¼­ ¸Ç À§ Çà
-        // ¼¿ °£ °£°İ ¸¸Å­ ¶³¾î¶ß¸®±â
+        // Unityì˜ yëŠ” ìœ„ìª½ì´ ì–‘ìˆ˜ ì•„ë˜ìª½ì´ ìŒìˆ˜
+        // ë³´í†µ 2D map ë§Œë“¤ ì‹œ 'í™”ë©´ ë§¨ ìœ„ë¶€í„° ìˆœì°¨ì ìœ¼ë¡œ ë‚´ë ¤ì˜¨ë‹¤' ë¼ê³  ìƒê°í•˜ê¸°ì— -y -> y = 0ì´ Unity ì¢Œí‘œê³„ì—ì„œ ë§¨ ìœ„ í–‰
+        // ì…€ ê°„ ê°„ê²© ë§Œí¼ ë–¨ì–´ëœ¨ë¦¬ê¸°
         Vector2 position = new Vector2(x * _cellSize, -y * _cellSize);
 
         // Instantiate(prefab, pos, rot)
-        // ¹Ì¸® ¸¸µç °ÔÀÓ ¿ÀºêÁ§Æ® ¿øº»(Prefab), »ı¼ºµÉ ¿ÀºêÁ§Æ® ÁÂÇ¥(pos), »ı¼ºµÉ ¿ÀºêÁ§Æ® È¸Àü°ª(rot)
+        // ë¯¸ë¦¬ ë§Œë“  ê²Œì„ ì˜¤ë¸Œì íŠ¸ ì›ë³¸(Prefab), ìƒì„±ë  ì˜¤ë¸Œì íŠ¸ ì¢Œí‘œ(pos), ìƒì„±ë  ì˜¤ë¸Œì íŠ¸ íšŒì „ê°’(rot)
         Cell newCell = Instantiate(CellPrefab, position, Quaternion.identity);
 
-        // ¹æ Å¸ÀÔÀ» ³ªÅ¸³»´Â °ª EX) 1: ÀÏ¹İ ¹æ 2: º¸½º ¹æ etc
+        // ë°© íƒ€ì…ì„ ë‚˜íƒ€ë‚´ëŠ” ê°’ EX) 1: ì¼ë°˜ ë°© 2: ë³´ìŠ¤ ë°© etc
         newCell.value = 1;
 
-        // ÀÌ ¹æÀÌ ¾î¶² À§Ä¡¿¡ ÇØ´çÇÏ´ÂÁö
+        // ì´ ë°©ì´ ì–´ë–¤ ìœ„ì¹˜ì— í•´ë‹¹í•˜ëŠ”ì§€
         newCell.index = index;
 
+        // ë°© ëª¨ì–‘ ì„¤ì •
+        newCell.SetRoomShape(RoomShape.OneByOne);
+
+        // ë°© íƒ€ì… ì„¤ì •
+        newCell.SetRoomType(RoomType.Regular);
+
+        // ì…€ List ê²€ìƒ‰í•˜ì—¬ í˜„ì¬ ì¸ë±ìŠ¤ ì¶”ê°€
+        newCell._cellList.Add(index);
+
+        _spawnCells.Add(newCell);
+    }
+
+    bool TryPlaceRoom(int origin, int[] offsets)
+    {
+        // ì´ ë²ˆì— ë§Œë“¤ ë°©(í° ë°©)ì„ êµ¬ì„±í•  ì¸ë±ìŠ¤ë“¤ì„ ë‹´ëŠ” ì„ì‹œ List
+        List<int> currentRoomIndexes = new List<int>() { origin };
+
+        foreach(var offset in offsets)
+        {
+            // ê° ì˜¤í”„ì…‹(Ex +1, +10, +11 etc)ì„ originì— ë”í•´ ì‹¤ì œ íƒ€ì¼ index ê³„ì‚°
+            int currentRoomChecked = origin + offset;
+
+            // í›„ë³´ ì¹¸ì˜ ìœ„ ë˜ëŠ” ì•„ë˜ê°€ ë§µ ë°–ì´ë©´ ë°°ì¹˜ ë¶ˆê°€ë¡œ ê°„ì£¼
+            if(currentRoomChecked - 10 < 0 || currentRoomChecked + 10 >= _floorPlan.Length)
+            {
+                return false;
+            }
+
+            // í›„ë³´ ì¹¸ì´ ì´ë¯¸ ì ìœ  ë˜ì–´ ìˆìœ¼ë©´ ì‹¤íŒ¨
+            if (_floorPlan[currentRoomChecked] != 0)
+            {
+                return false;
+            }
+
+            // í›„ë³´ ì¹¸ì´ ìê¸° ìì‹ ì´ë©´ ìŠ¤í‚µ
+            if (currentRoomChecked == origin) continue;
+
+            // ì—´ indexê°€ ê°€ì¥ ì™¼ìª½ ì—´ì¸ ì¹¸ì€ ìŠ¤í‚µ
+            if (currentRoomChecked % 10 == 0) continue;
+
+            // ê²€ì¦ì´ í†µê³¼ëœ í° ë°© êµ¬ì„± Listì— ì¶”ê°€
+            currentRoomIndexes.Add(currentRoomChecked);
+        }
+
+        if (currentRoomIndexes.Count == 1) return false;
+
+        // ìµœì¢… í™•ì •ëœ í° ë°© êµ¬ì„± ì¹¸ë“¤ì„ ì‹¤ì œ ë§µì— Commit
+        foreach (int index in currentRoomIndexes)
+        {
+            // 0ì—ì„œ 1ë¡œ í‘œì‹œ(ì ìœ ë˜ì—ˆë‹¤ëŠ” ì˜ë¯¸)
+            _floorPlan[index] = 1;
+
+            // ì „ì²´ ì¹´ìš´íŠ¸ ì¦ê°€
+            _floorPlanCount++;
+
+            // ì…€ íì— ë“±ë¡
+            _cellQueue.Enqueue(index);
+            
+            // í° ë°© index ëª©ë¡ì— ê¸°ë¡
+            _bigRoomIndexes.Add(index);
+        }
+
+        SpawnLargeRoom(currentRoomIndexes);
+
+        return true;
+    }
+
+    /// <summary>
+    /// í° ë°©(2x2, L, 1x2 / 2x1)ì„ êµ¬ì„±í•˜ëŠ” ì…€ë“¤ì˜ ì¸ë±ìŠ¤ ëª©ë¡ì„ ë°›ì•„ í•˜ë‚˜ì˜ Prefabìœ¼ë¡œ ë°°ì¹˜
+    /// </summary>
+    /// <param name="largeRoomIndexes"></param>
+    void SpawnLargeRoom(List<int> largeRoomIndexes)
+    {
+        // ìƒì„±í•œ Prefab í•¸ë“¤
+        Cell newCell = null;
+
+        // ê·¸ë¦¬ë“œ ì¢Œí‘œ(x, y)ì˜ í•©(í‰ê· ì´ë‚˜ ì¤‘ì‹¬ ê³„ì‚°ì— ì‚¬ìš©)
+        int combinedX = 0, combinedY = 0;
+        
+        // ì…€ ì¤‘ì‹¬ìœ¼ë¡œ ì´ë™í•˜ê¸° ìœ„í•œ half-cell offset
+        float offset = _cellSize / 2f;
+
+        // ì „ë‹¬ëœ ëª¨ë“  ì…€ index ìˆœíšŒ
+        for(int i = 0; i < largeRoomIndexes.Count; i++)
+        {
+            // 1D -> 2D : ì—´ index
+            int x = largeRoomIndexes[i] % 10;
+            // 1D -> 2D : í–‰ index
+            int y = largeRoomIndexes[i] / 10;
+
+            // x, y ì¢Œí‘œ ëˆ„ì 
+            combinedX += x;
+            combinedY += y;
+        }
+
+        // 2x2 í˜•íƒœì˜ ê°ì‹¤
+        if(largeRoomIndexes.Count == 4)
+        {
+            // í‰ê· (ì •ìˆ˜ ë‚˜ëˆ—ì…ˆìœ¼ë¡œ ë°”ë‹¥ê°’) * _cellSize + (0.5cell) -> 2x2 ë¸”ë¡ì˜ ì •í™•í•œ ì¤‘ì‹¬
+            // yëŠ” ìœ„ì—ì„œ ì•„ë˜ë¡œ ì¦ê°€í•˜ë„ë¡ ìŒìˆ˜ë¡œ ë§¤í•‘
+            Vector2 position = new Vector2(combinedX / 4 * _cellSize + offset, -combinedY / 4 * _cellSize - offset);
+
+            // prefab ìƒì„±
+            newCell = Instantiate(CellPrefab, position ,Quaternion.identity);
+            newCell.SetRoomSprite(_largeRoom);
+            newCell.SetRoomShape(RoomShape.TwoByTwo);
+        }
+
+        // L í˜•íƒœì˜ ê°ì‹¤
+        if(largeRoomIndexes.Count == 3)
+        {
+            // 2x2 ë°•ìŠ¤ì˜ ì¤‘ì‹¬ì— ë§ì¶”ê¸° ìœ„í•´ í‰ê·  + half-cell
+            Vector2 position = new Vector2(combinedX / 3 * _cellSize + offset, -combinedY / 3 * _cellSize - offset);
+
+            newCell = Instantiate(CellPrefab, position, Quaternion.identity);
+            newCell.SetRoomSprite(_LShapeRoom);
+            newCell.SetRoomShape(RoomShape.LShape);
+
+            // ëˆ„ë½ëœ ì½”ë„ˆ ìœ„ì¹˜ë¥¼ ê¸°ë°˜ìœ¼ë¡œ ì˜¬ë°”ë¥¸ ë°©í–¥ìœ¼ë¡œ íšŒì „
+            newCell.RotateCell(largeRoomIndexes);
+        }
+        
+        // 1x2 í˜¹ì€ 2x1 í˜•íƒœì˜ ê°ì‹¤
+        if(largeRoomIndexes.Count == 2)
+        {
+            // ìˆ˜ì§ ì¸ì ‘
+            if (largeRoomIndexes[0] + 10 == largeRoomIndexes[1] || largeRoomIndexes[0] - 10 == largeRoomIndexes[1])
+            {
+                // ìˆ˜ì§ ëª¨ì–‘ì´ê¸°ì— xëŠ” ë‘ ì…€ì´ ê°™ìœ¼ë¯€ë¡œ í‰ê·  ê·¸ëŒ€ë¡œ. yëŠ” ì„œë¡œ ë‹¤ë¥´ë¯€ë¡œ ì¤‘ì•™ì´ ë°˜ì¹¸ -> -offset
+                Vector2 position = new Vector2(combinedX / 2 * _cellSize, -combinedY / 2 * _cellSize - offset);
+
+                newCell = Instantiate(CellPrefab, position, Quaternion.identity);
+                newCell.SetRoomSprite(_verticalRoom);
+                newCell.SetRoomShape(RoomShape.OneByTwo);
+            }
+
+            // ìˆ˜í‰ ì¸ì ‘
+            if (largeRoomIndexes[0] + 1 == largeRoomIndexes[1] || largeRoomIndexes[0] - 1 == largeRoomIndexes[1])
+            {
+                // ìˆ˜í‰ ëª¨ì–‘ì´ê¸°ì— xëŠ” ì¤‘ì•™ì´ ë°˜ì¹¸ -> +offset, yëŠ” ë‘ ì…€ì´ ê°™ìœ¼ë¯€ë¡œ í‰ê· 
+                Vector2 position = new Vector2(combinedX / 2 * _cellSize + offset, -combinedY / 2 * _cellSize);
+
+                newCell = Instantiate(CellPrefab, position, Quaternion.identity);
+                newCell.SetRoomSprite(_horizontalRoom);
+                newCell.SetRoomShape(RoomShape.TwoByOne);
+            }
+        }
+
+        newCell._cellList = largeRoomIndexes;
+        newCell._cellList.Sort();
+
+        // ê´€ë¦¬ / ì°¸ì¡° ë¥¼ ìœ„í•´ ë¦¬ìŠ¤íŠ¸ì— ì¶”ê°€
         _spawnCells.Add(newCell);
     }
 }
